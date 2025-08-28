@@ -6,7 +6,7 @@
 </p>
 ![Screenshot](https://i.ibb.co/LhcFXX8s/02.png)
 ![Employee data](https://i.ibb.co/LhcFXX8s/02.png "Employee Data title")
-<img src="[http://url/image.png](https://i.ibb.co/LhcFXX8s/02.png)" height="60" width="60" >
+<img src="[http://url/image.png](https://i.ibb.co/LhcFXX8s/02.png)" >
 
 <p align="center">
   <img alt="Python" src="https://img.shields.io/badge/Python-3.10%2B-blue"/>
