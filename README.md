@@ -144,7 +144,7 @@ Ce projet est fourni <strong>strictement pour des tests en environnement contrô
 <h2>🚀 Installation &amp; Utilisation</h2>
 
 <h3>1. Cloner le projet</h3>
-<pre><code>git clone https://github.com/tonrepo/reverseshell-server.git
+<pre><code>git clone https://github.com/b-L-x/reverseshell-server.git
 cd reverseshell-server
 </code></pre>
 
