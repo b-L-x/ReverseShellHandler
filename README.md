@@ -113,9 +113,3 @@ Ce projet est fourni <strong>strictement pour des tests en environnement contrô
 <hr/>
 
 <h2>📸 Captures d'écran (placeholders)</h2>
-<p>
-  <img alt="Dashboard" src="docs/screenshot_dashboard.png"/>
-  <img alt="Terminals" src="docs/screenshot_terminals.png"/>
-  <img alt="Bulk Whois" src="docs/screenshot_whois.png"/>
-  <img alt="Payload Generator" src="docs/screenshot_payloads.png"/>
-</p>
