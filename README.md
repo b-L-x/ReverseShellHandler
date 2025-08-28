@@ -113,3 +113,68 @@ Ce projet est fourni <strong>strictement pour des tests en environnement contrô
 <hr/>
 
 <h2>📸 Captures d'écran (placeholders)</h2>
+
+<h1 align="center">🖥️ Reverse Shell Server Agent</h1>
+
+<p align="center">
+  <em>Serveur Python permettant d’accepter des connexions de reverse shells et de communiquer avec une interface GUI.</em>
+</p>
+
+<hr/>
+
+<h2>⚙️ Fonctionnalités</h2>
+<ul>
+  <li>Écoute des <strong>reverse shells</strong> sur un port dédié.</li>
+  <li>Écoute des <strong>clients GUI</strong> sur un autre port.</li>
+  <li>Gestion multi-clients avec threads et file d’attente de messages.</li>
+  <li>Option <code>--install</code> pour déployer automatiquement le serveur comme <strong>service systemd</strong> au démarrage.</li>
+  <li>Nom de processus masqué (via <code>setproctitle</code> si disponible).</li>
+</ul>
+
+<hr/>
+
+<h2>🔌 Ports</h2>
+<ul>
+  <li><strong>Port Shell</strong> (par défaut <code>990</code>) → réception des connexions reverse shell.</li>
+  <li><strong>Port GUI</strong> (par défaut <code>8080</code>) → communication avec l’interface graphique cliente.</li>
+</ul>
+
+<hr/>
+
+<h2>🚀 Installation &amp; Utilisation</h2>
+
+<h3>1. Cloner le projet</h3>
+<pre><code>git clone https://github.com/tonrepo/reverseshell-server.git
+cd reverseshell-server
+</code></pre>
+
+<h3>2. Lancer le serveur manuellement</h3>
+<pre><code>python server.py [shell_port] [gui_port]
+
+# Exemple :
+python server.py 990 8080
+</code></pre>
+
+<h3>3. Installer comme service systemd (optionnel)</h3>
+<pre><code>sudo python server.py --install
+</code></pre>
+<ul>
+  <li>Crée un service <code>systemd-worker.service</code> dans <code>/etc/systemd/system/</code>.</li>
+  <li>Démarrage automatique au boot.</li>
+  <li>Commandes utiles :
+    <pre><code>sudo systemctl start systemd-worker
+sudo systemctl status systemd-worker
+sudo systemctl stop systemd-worker
+</code></pre>
+  </li>
+</ul>
+
+<hr/>
+
+<h2>📋 Exemple rapide</h2>
+<pre><code># Écouter sur ports par défaut
+python server.py
+
+# Écouter sur ports custom
+python server.py 4444 9090
+</code></pre>
