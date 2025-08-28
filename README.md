@@ -4,7 +4,8 @@
 <p align="center">
   <em>Client GUI PyQt6 pour recevoir, visualiser et piloter des shells à distance, avec terminal ANSI, génération de payloads, Whois en masse, proxy et alertes.</em>
 </p>
-![Terminal]([https://raw.githubusercontent.com/github/explore/main/topics/python/python.png](https://i.ibb.co/JwPBjVNb/terminal.png))
+![Terminal](https://i.ibb.co/JwPBjVNb/terminal.png)
+![whois]([https://i.ibb.co/JwPBjVNb/terminal.png](https://i.ibb.co/TDPcQccT/whois.png))
 
 <p align="center">
   <img alt="Python" src="https://img.shields.io/badge/Python-3.10%2B-blue"/>
