@@ -4,10 +4,8 @@
 <p align="center">
   <em>Client GUI PyQt6 pour recevoir, visualiser et piloter des shells à distance, avec terminal ANSI, génération de payloads, Whois en masse, proxy et alertes.</em>
 </p>
-![Screenshot](https://i.ibb.co/LhcFXX8s/02.png)
-![Employee data](https://i.ibb.co/LhcFXX8s/02.png "Employee Data title")
-<img src="https://i.ibb.co/LhcFXX8s/02.png" >
-
+<img src="https://i.ibb.co/JwPBjVNb/terminal.png" >
+<img src="https://i.ibb.co/TDPcQccT/whois.png" >
 <p align="center">
   <img alt="Python" src="https://img.shields.io/badge/Python-3.10%2B-blue"/>
   <img alt="PyQt6" src="https://img.shields.io/badge/GUI-PyQt6-41b883"/>
