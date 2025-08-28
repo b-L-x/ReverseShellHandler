@@ -1,5 +1,5 @@
 <!-- Reverse Shell Handler Pro — README section (HTML-friendly for GitHub) -->
-<h1 align="center">Reverse Shell Handler Pro</h1>
+<h1 align="center">Reverse Shell Handler</h1>
 
 <p align="center">
   <em>PyQt6 Client GUI to receive, visualize and control remote shells, with ANSI terminal, payload generator, bulk Whois, proxy and alerts.</em>
