@@ -1,44 +1,183 @@
+import sys
+import socket
+import threading
+import json
+import time
+import re
+import os
+# import base64 # Supprimé - Utilisé uniquement pour le transfert de fichiers
+from PyQt6.QtWidgets import QTableWidget, QHeaderView, QTableWidgetItem
+from collections import deque, OrderedDict
+from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
+                            QTabWidget, QTextEdit, QLineEdit, QPushButton, QLabel,
+                            QStatusBar, QMenu, QMessageBox, QSplitter, QFrame, QScrollBar,
+                            QCheckBox, QDialog, QGridLayout, QDialogButtonBox, QTabBar,
+                            QGroupBox, QListWidget, QListWidgetItem, QFileDialog,
+                            # QProgressBar, # Supprimé - Utilisé uniquement pour le transfert de fichiers
+                            QComboBox, QTreeWidget, QTreeWidgetItem, QDockWidget, QInputDialog,
+                            QFormLayout, QSpinBox, QSizePolicy, QStackedWidget, QTextBrowser)
+from PyQt6.QtCore import Qt, QTimer, pyqtSignal, QObject, QEvent, QSize, QPropertyAnimation, QEasingCurve, QAbstractAnimation, QVariantAnimation, QThread
+from PyQt6.QtGui import QFont, QColor, QTextCharFormat, QTextCursor, QAction, QPalette, QClipboard, QPainter, QPen, QSyntaxHighlighter, QTextDocument, QPixmap, QIcon
+
+# Flags de dépendances externes
+try:
+    from pygame import mixer
+    PYGAME_AVAILABLE = True
+except ImportError:
+    PYGAME_AVAILABLE = False
+    
+try:
+    from ipwhois import IPWhois
+    IPWHOIS_AVAILABLE = True
+except ImportError:
+    IPWHOIS_AVAILABLE = False
+    
+try:
+    import socks
+    SOCKS_AVAILABLE = True
+except Exception:
+    SOCKS_AVAILABLE = False
+
+try:
+    import pygame
+    PYGAME_AVAILABLE = True
+except Exception:
+    PYGAME_AVAILABLE = False
+
+try:
+    import requests
+    REQUESTS_AVAILABLE = True
+except Exception:
+    REQUESTS_AVAILABLE = False
+
+try:
+    from cryptography.fernet import Fernet
+    CRYPTO_AVAILABLE = True
+except Exception:
+    CRYPTO_AVAILABLE = False
+# ================================================
 
 from PyQt6.QtWidgets import QTextEdit, QApplication
 from PyQt6.QtGui import QTextCursor, QTextCharFormat, QColor, QFont
 from PyQt6.QtCore import Qt, pyqtSignal
 
+
 class TerminalWidget(QTextEdit):
+    """Terminal interactif durci (style PuTTY) :
+    - copy-on-select
+    - paste au clic droit (sans double collage)
+    - protection du prompt / zone non-éditable
+    - historique avec ↑/↓
+    - insertion du prompt après la réponse uniquement
+    - prompt "$shell > " en vert matrix
+    """
     command_entered = pyqtSignal(str)
 
     def __init__(self):
         super().__init__()
-        self.setFont(QFont("Courier", 10))
+        self.setFont(QFont("Courier New", 10))
         self.setStyleSheet("background-color: black; color: #AAAAAA;")
         self.setUndoRedoEnabled(False)
         self.setLineWrapMode(QTextEdit.LineWrapMode.NoWrap)
+        self._internal_selecting = False  # évite de copier lorsqu'on sélectionne par code
+
+        # Historique des commandes (style shell)
+        self.command_history = []
+        self.history_index = -1
+
+        # Interactions type terminal
+        self.setMouseTracking(True)
+        self.setContextMenuPolicy(Qt.ContextMenuPolicy.NoContextMenu)
+
+        # Position de début de la saisie courante
         self.command_start_pos = 0
         self.set_prompt()
 
+    # --------------------------- Prompt ---------------------------
     def set_prompt(self):
+        """Affiche le prompt vert et fixe la position d'édition."""
         cursor = self.textCursor()
         cursor.movePosition(QTextCursor.MoveOperation.End)
-        cursor.insertText("$hell > ", QTextCharFormat())
+        prompt_text = "$shell > "
+        fmt = QTextCharFormat()
+        fmt.setForeground(QColor("#00FF41"))  # vert matrix
+        fmt.setFontWeight(QFont.Weight.Bold)
+        cursor.insertText(prompt_text, fmt)
         self.command_start_pos = cursor.position()
         self.setTextCursor(cursor)
 
+    # ---------------------- Saisie clavier ------------------------
     def keyPressEvent(self, event):
         cursor = self.textCursor()
-        if cursor.position() < self.command_start_pos and event.key() not in (Qt.Key.Key_Left, Qt.Key.Key_Right, Qt.Key.Key_Up, Qt.Key.Key_Down):
+
+        # Empêche toute édition avant la zone input
+        if cursor.position() < self.command_start_pos:
             cursor.setPosition(self.command_start_pos)
             self.setTextCursor(cursor)
-        if event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
+
+        key = event.key()
+        modifiers = event.modifiers()
+
+        # Historique ↑ / ↓
+        if key == Qt.Key.Key_Up:
+            if self.command_history:
+                if self.history_index == -1:
+                    self.history_index = len(self.command_history) - 1
+                else:
+                    self.history_index = max(0, self.history_index - 1)
+                self._replace_current_input(self.command_history[self.history_index])
+            return
+        if key == Qt.Key.Key_Down:
+            if self.command_history and self.history_index != -1:
+                self.history_index = min(len(self.command_history) - 1, self.history_index + 1)
+                self._replace_current_input(self.command_history[self.history_index])
+            else:
+                self._replace_current_input("")
+            return
+
+        # Blocages type terminal
+        if key in (Qt.Key.Key_Backspace, Qt.Key.Key_Left):
+            if self.textCursor().position() <= self.command_start_pos:
+                return  # ne pas effacer le prompt / sortir de la zone input
+        if key == Qt.Key.Key_Home:
+            cursor.setPosition(self.command_start_pos)
+            self.setTextCursor(cursor)
+            return
+        if key in (Qt.Key.Key_PageUp, Qt.Key.Key_PageDown):
+            return  # éviter des sélections bizarres
+
+        # Entrée : émettre la commande et NE PAS ré-afficher le prompt tout de suite
+        if key in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
             cursor.movePosition(QTextCursor.MoveOperation.End)
             cursor.setPosition(self.command_start_pos, QTextCursor.MoveMode.KeepAnchor)
-            command = cursor.selectedText().strip()
+            raw = cursor.selectedText()
+            command = raw.replace('\u2029', '\n').strip()
             cursor.removeSelectedText()
-            self.append("\n")
-            self.set_prompt()
-            self.command_entered.emit(command)
-        else:
-            super().keyPressEvent(event)
+            cursor.insertText("\n")
+            self.setTextCursor(cursor)
 
+            if command:
+                self.command_history.append(command)
+            self.history_index = -1
+
+            # Le prompt sera réinséré quand la réponse arrive (append_output)
+            self.command_entered.emit(command)
+            return
+
+        # Copie (Ctrl+C) : laisser Qt gérer (pas de SIGINT ici)
+        if key == Qt.Key.Key_C and modifiers & Qt.KeyboardModifier.ControlModifier:
+            super().keyPressEvent(event)
+            return
+
+        # Par défaut : comportement QTextEdit normal dans la zone autorisée
+        super().keyPressEvent(event)
+
+    # ---------------------- Souris / Copier-Coller ----------------
     def mouseReleaseEvent(self, event):
+        # Copy-on-select : copie automatique si du texte est sélectionné
+        self._copy_selected_to_clipboard()
+
+        # Clic droit : collage simple (sans doublon)
         if event.button() == Qt.MouseButton.RightButton:
             cursor = self.textCursor()
             if cursor.position() < self.command_start_pos:
@@ -51,28 +190,57 @@ class TerminalWidget(QTextEdit):
         super().mouseReleaseEvent(event)
 
     def contextMenuEvent(self, event):
+        """Désactive le menu contextuel natif pour éviter double-collage."""
         cursor = self.textCursor()
         if cursor.position() < self.command_start_pos:
             cursor.setPosition(self.command_start_pos)
             self.setTextCursor(cursor)
-        clipboard = QApplication.clipboard().text()
-        if clipboard:
-            self.insertPlainText(clipboard)
         event.accept()
 
+    # ------------------------ Sortie serveur ----------------------
     def append_output(self, text):
+        """Affiche la sortie, puis *ensuite* remet le prompt."""
         cursor = self.textCursor()
         cursor.movePosition(QTextCursor.MoveOperation.End)
+        # Si la ligne courante ne contient que le prompt, l'enlever
         cursor.select(QTextCursor.SelectionType.LineUnderCursor)
         line_text = cursor.selectedText()
-        if line_text.startswith("$hell > "):
+        if line_text.startswith("$shell > "):
             cursor.removeSelectedText()
+        # Écrire la sortie avec interprétation ANSI
         self.apply_ansi(text, cursor)
         if not (text.endswith('\n') or text.endswith('\r')):
             cursor.insertText('\n')
         self.setTextCursor(cursor)
+        # Remettre le prompt maintenant
         self.set_prompt()
 
+    # --------------------------- Utils ----------------------------
+    def _replace_current_input(self, text: str):
+        """Remplace le texte de la zone de saisie courante par *text*."""
+        cursor = self.textCursor()
+        self._internal_selecting = True
+        cursor.setPosition(self.command_start_pos, QTextCursor.MoveMode.MoveAnchor)
+        cursor.movePosition(QTextCursor.MoveOperation.End, QTextCursor.MoveMode.KeepAnchor)
+        cursor.removeSelectedText()
+        cursor.insertText(text)
+        self.setTextCursor(cursor)
+        self._internal_selecting = False
+
+    def _copy_selected_to_clipboard(self):
+        """Copie automatiquement la sélection (copy-on-select), façon PuTTY."""
+        if self._internal_selecting:
+            return
+        cursor = self.textCursor()
+        if cursor.hasSelection():
+            try:
+                text = cursor.selection().toPlainText()
+            except Exception:
+                text = cursor.selectedText().replace('\u2029', '\n')
+            if text:
+                QApplication.clipboard().setText(text)
+
+    # ------------------------ ANSI renderer -----------------------
     def apply_ansi(self, s, cursor):
         default_format = QTextCharFormat()
         default_format.setForeground(QColor("#AAAAAA"))
@@ -84,17 +252,13 @@ class TerminalWidget(QTextEdit):
                 while j < len(s) and s[j] not in 'm':
                     j += 1
                 if j < len(s) and s[j] == 'm':
-                    params = s[i+2:j]
-                    if params == '':
-                        params = '0'
-                    parts = [p for p in params.split(';') if p != '']
-                    if not parts:
-                        parts = ['0']
+                    params = s[i+2:j] or '0'
+                    parts = [p for p in params.split(';') if p != ''] or ['0']
                     k = 0
                     while k < len(parts):
                         try:
                             n = int(parts[k])
-                        except:
+                        except Exception:
                             n = 0
                         if n == 0:
                             fmt = QTextCharFormat(default_format)
@@ -169,59 +333,8 @@ class TerminalWidget(QTextEdit):
             i += 1
 
     def clean_ansi_sequences(self, text):
-        text = text.replace('\r','')
-        return text
+        return text.replace('\r','')
 
-import sys
-import socket
-import threading
-import json
-import time
-import re
-import os
-# import base64 # Supprimé - Utilisé uniquement pour le transfert de fichiers
-from collections import deque, OrderedDict
-from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-                            QTabWidget, QTextEdit, QLineEdit, QPushButton, QLabel,
-                            QStatusBar, QMenu, QMessageBox, QSplitter, QFrame, QScrollBar,
-                            QCheckBox, QDialog, QGridLayout, QDialogButtonBox, QTabBar,
-                            QGroupBox, QListWidget, QListWidgetItem, QFileDialog,
-                            # QProgressBar, # Supprimé - Utilisé uniquement pour le transfert de fichiers
-                            QComboBox, QTreeWidget, QTreeWidgetItem, QDockWidget, QInputDialog,
-                            QFormLayout, QSpinBox, QSizePolicy, QStackedWidget, QTextBrowser,
-                            QTableWidget, QTableWidgetItem, QHeaderView)
-from PyQt6.QtCore import Qt, QTimer, pyqtSignal, QObject, QEvent, QSize, QPropertyAnimation, QEasingCurve, QAbstractAnimation, QVariantAnimation, QThread
-from PyQt6.QtGui import QFont, QColor, QTextCharFormat, QTextCursor, QAction, QPalette, QClipboard, QPainter, QPen, QSyntaxHighlighter, QTextDocument, QIcon, QPixmap
-# --- Ajout de l'import pour pygame (début du fichier) ---
-try:
-    from pygame import mixer
-    PYGAME_AVAILABLE = True
-except ImportError:
-    PYGAME_AVAILABLE = False
-    print("pygame not found. MP3 alert will be disabled. Install it with 'pip install pygame'")
-# --- Ajout de l'import pour le proxy (début du fichier) ---
-try:
-    import socks
-    SOCKS_AVAILABLE = True
-except ImportError:
-    SOCKS_AVAILABLE = False
-    print("PySocks not found. Proxy functionality will be disabled. Install it with 'pip install PySocks'")
-# --- Ajout de l'import pour ipwhois (début du fichier) ---
-try:
-    from ipwhois import IPWhois
-    IPWHOIS_AVAILABLE = True
-except ImportError:
-    IPWHOIS_AVAILABLE = False
-    print("ipwhois not found. Whois functionality will be disabled. Install it with 'pip install ipwhois'")
-# --- Ajout de l'import pour requests (début du fichier) ---
-try:
-    import requests
-    REQUESTS_AVAILABLE = True
-except ImportError:
-    REQUESTS_AVAILABLE = False
-    print("requests not found. Flag functionality will be disabled. Install it with 'pip install requests'")
-# --- Fin de l'ajout ---
-# --- Fenêtre pour afficher le payload généré ---
 class PayloadDisplayWindow(QDialog):
     def __init__(self, payload_text, parent=None):
         super().__init__(parent)
@@ -567,37 +680,39 @@ class BroadcastCommandDialog(QDialog):
         """Retourne la commande sélectionnée ou saisie"""
         return self.command_input.text().strip()
 # --- Fin des fenêtres ---
+
 class CommandHighlighter(QSyntaxHighlighter):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.highlighting_rules = []
-        # Command highlighting
+        # Prompt "$shell > " en vert matrix
         command_format = QTextCharFormat()
-        command_format.setForeground(QColor("#FF6B6B"))
+        command_format.setForeground(QColor("#00FF41"))
         command_format.setFontWeight(QFont.Weight.Bold)
-        self.highlighting_rules.append((r'\$hell > ', command_format))
-        # Path highlighting
+        self.highlighting_rules.append((r'\$shell > ', command_format))
+        # Chemins
         path_format = QTextCharFormat()
         path_format.setForeground(QColor("#4ECDC4"))
-        self.highlighting_rules.append((r'\/[^\s]*', path_format))
-        # Option highlighting
+        self.highlighting_rules.append((r'\/[^^\s]*', path_format))
+        # Options
         option_format = QTextCharFormat()
         option_format.setForeground(QColor("#F7DC6F"))
         self.highlighting_rules.append((r'-\w+', option_format))
-        # Error highlighting
+        # Erreurs
         error_format = QTextCharFormat()
         error_format.setForeground(QColor("#FF4757"))
         self.highlighting_rules.append((r'error|Error|ERROR|fail|Fail|FAIL', error_format))
-        # Success highlighting
+        # Succès
         success_format = QTextCharFormat()
         success_format.setForeground(QColor("#2ED573"))
         self.highlighting_rules.append((r'success|Success|SUCCESS|done|Done|DONE', success_format))
+
     def highlightBlock(self, text):
-        for pattern, format in self.highlighting_rules:
+        for pattern, fmt in self.highlighting_rules:
             expression = re.compile(pattern)
             for match in expression.finditer(text):
                 start, end = match.span()
-                self.setFormat(start, end - start, format)
+                self.setFormat(start, end - start, fmt)
 
 class PayloadGeneratorWidget(QWidget):
     def __init__(self, parent=None):
