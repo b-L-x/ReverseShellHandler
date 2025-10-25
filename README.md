@@ -4,8 +4,8 @@
 <p align="center">
   <em>PyQt6 Client GUI to receive, visualize and control remote shells, with ANSI terminal, payload generator, bulk Whois, proxy and alerts.</em>
 </p>
-<img src="https://i.ibb.co/78981Ds/68747470733a2f2f692e6962622e636f2f4a7750426a564e622f7465726d696e616c2e706e67.png" >
-<img src="https://i.ibb.co/TDPcQccT/whois.png" >
+![Main Interface](screenshots/main.png)  
+![Main Interface](screenshots/whois.png)  
 <p align="center">
   <img alt="Python" src="https://img.shields.io/badge/Python-3.10%2B-blue"/>
   <img alt="PyQt6" src="https://img.shields.io/badge/GUI-PyQt6-41b883"/>
