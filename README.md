@@ -12,6 +12,12 @@
   <img alt="Status" src="https://img.shields.io/badge/Build-Client--only-informational"/>
 </p>
 
+<p align="center">
+  <img src="screenshots/main.png" alt="Main Interface" width="800"/>
+  <br><br>
+  <img src="screenshots/whois.png" alt="Whois Lookup" width="800"/>
+</p>
+
 <hr/>
 
 <h2>✨ Highlights</h2>
@@ -109,15 +115,6 @@ This project is provided <strong>strictly for testing in controlled environments
   <li><strong>Bash</strong> — classic <code>/dev/tcp</code> redirections.</li>
   <li><strong>PS Encoding</strong> — <code>-enc</code> in UTF-16LE on command part, PowerShell compliant.</li>
 </ul>
-
-<hr/>
-
-<h2>📸 Screenshots</h2>
-<p align="center">
-  <img src="screenshots/main.png" alt="Main Interface" width="800"/>
-  <br><br>
-  <img src="screenshots/whois.png" alt="Whois Lookup" width="800"/>
-</p>
 
 <hr/>
 
