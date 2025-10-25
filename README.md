@@ -16,6 +16,8 @@
   <img src="screenshots/main.png" alt="Main Interface" width="800"/>
   <br><br>
   <img src="screenshots/whois.png" alt="Whois Lookup" width="800"/>
+  <br><br>
+  <img src="screenshots/diagramme.png" alt="Whois Lookup" width="800"/>
 </p>
 
 <hr/>
