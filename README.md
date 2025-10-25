@@ -1,11 +1,11 @@
 <!-- Reverse Shell Handler Pro — README section (HTML-friendly for GitHub) -->
+
 <h1 align="center">Reverse Shell Handler</h1>
 
 <p align="center">
   <em>PyQt6 Client GUI to receive, visualize and control remote shells, with ANSI terminal, payload generator, bulk Whois, proxy and alerts.</em>
 </p>
-![Main Interface](screenshots/main.png)  
-![Main Interface](screenshots/whois.png)  
+
 <p align="center">
   <img alt="Python" src="https://img.shields.io/badge/Python-3.10%2B-blue"/>
   <img alt="PyQt6" src="https://img.shields.io/badge/GUI-PyQt6-41b883"/>
@@ -20,7 +20,7 @@
   </li>
   <li><strong>PuTTY-like terminal</strong>:
     <ul>
-      <li>Protected prompt (<code>$hell &gt;</code>), editing blocked before prompt, paste on right click.</li>
+      <li>Protected prompt (<code>$hell ></code>), editing blocked before prompt, paste on right click.</li>
       <li><strong>ANSI 16/256 color rendering</strong>, bold/italic, inverse, and extended xterm colors (38/48; 24-bit mapped). <!-- ANSI rendering -->
       </li>
       <li>CR/LF cleanup and automatic line break insertion.</li>
@@ -112,7 +112,14 @@ This project is provided <strong>strictly for testing in controlled environments
 
 <hr/>
 
-<h2>📸 Screenshots (placeholders)</h2>
+<h2>📸 Screenshots</h2>
+<p align="center">
+  <img src="screenshots/main.png" alt="Main Interface" width="800"/>
+  <br><br>
+  <img src="screenshots/whois.png" alt="Whois Lookup" width="800"/>
+</p>
+
+<hr/>
 
 <h1 align="center">🖥️ Reverse Shell Server Agent</h1>
 
